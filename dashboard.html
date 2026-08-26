@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة التحكم بالدورة</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { background-color: #333333; color: #ffffff; }
+    .custom-card { background-color: #4a4a4a; border: 2px solid #222222; border-radius: 1rem; }
+    .inner-card { background-color: #555555; border: 1.5px solid #2b2b2b; border-radius: 0.75rem; }
+  </style>
+</head>
+<body class="p-6 font-sans">
+
+  <div class="max-w-6xl mx-auto space-y-6">
+
+    <!-- القسم العلوي: 3 أعمدة -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      
+      <!-- الواجبات -->
+      <div class="custom-card p-4 space-y-3">
+        <div class="bg-[#3b3b3b] text-center py-2 px-4 rounded-full font-bold border border-gray-600">الواجبات</div>
+        <div id="assignments-list" class="space-y-3">
+          <!-- البيانات تنزل هنا تلقائياً -->
+        </div>
+      </div>
+
+      <!-- إعلانات الدورة 1 -->
+      <div class="custom-card p-4 space-y-3">
+        <div class="bg-[#3b3b3b] text-center py-2 px-4 rounded-full font-bold border border-gray-600">إعلانات الدورة</div>
+        <div id="announcements-1-list" class="space-y-3">
+          <!-- البيانات تنزل هنا تلقائياً -->
+        </div>
+      </div>
+
+      <!-- إعلانات الدورة 2 -->
+      <div class="custom-card p-4 space-y-3">
+        <div class="bg-[#3b3b3b] text-center py-2 px-4 rounded-full font-bold border border-gray-600">إعلانات الدورة</div>
+        <div id="announcements-2-list" class="space-y-3">
+          <!-- البيانات تنزل هنا تلقائياً -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- القسم السفلي: تسجيل الدورة -->
+    <div class="custom-card p-4 space-y-4">
+      <div class="bg-[#3b3b3b] text-center py-3 px-6 rounded-full font-bold text-lg border border-gray-600">
+        تسجيل الدورة
+      </div>
+
+      <!-- شبكة الأسابيع -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div onclick="loadWeekContent(1)" class="inner-card p-8 text-center font-bold text-xl cursor-pointer hover:bg-gray-600 transition">الأسبوع الأول</div>
+        <div onclick="loadWeekContent(2)" class="inner-card p-8 text-center font-bold text-xl cursor-pointer hover:bg-gray-600 transition">الأسبوع الثاني</div>
+        <div onclick="loadWeekContent(3)" class="inner-card p-8 text-center font-bold text-xl cursor-pointer hover:bg-gray-600 transition">الأسبوع الثالث</div>
+        <div onclick="loadWeekContent(4)" class="inner-card p-8 text-center font-bold text-xl cursor-pointer hover:bg-gray-600 transition">الأسبوع الرابع</div>
+        <div onclick="loadWeekContent(5)" class="inner-card p-8 text-center font-bold text-xl cursor-pointer hover:bg-gray-600 transition">الأسبوع الخامس</div>
+        <div onclick="loadWeekContent(6)" class="inner-card p-8 text-center font-bold text-xl cursor-pointer hover:bg-gray-600 transition">الأسبوع السادس</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ضع بيانات مشروعك هنا
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function fetchDashboardData() {
+      const { data, error } = await supabase.from('dashboard_items').select('*');
+      if (error) return console.error(error);
+
+      // توزيع البيانات على الأقسام
+      ['assignments', 'announcements_1', 'announcements_2'].forEach(section => {
+        const container = document.getElementById(`${section.replace('_', '-')}-list`);
+        const filtered = data.filter(item => item.section_type === section).slice(0, 2);
+        
+        container.innerHTML = filtered.map(item => `
+          <div class="inner-card p-4">
+            <h4 class="font-bold text-sm">${item.title}</h4>
+            <p class="text-xs text-gray-300 mt-1">${item.content || ''}</p>
+            ${item.file_url ? `<a href="${item.file_url}" target="_blank" class="text-xs text-blue-300 underline mt-2 block">تحميل المرفق</a>` : ''}
+          </div>
+        `).join('') || '<div class="inner-card p-6 text-center text-gray-400 text-sm">لا يوجد محتوى</div>';
+      });
+    }
+
+    function loadWeekContent(weekNum) {
+      alert(`تم ضغط: الأسبوع ${weekNum} - هنا تقدر تفتح مودال أو صفحة لعرض فيديوهات الأسبوع.`);
+    }
+
+    fetchDashboardData();
+  </script>
+</body>
+</html>
