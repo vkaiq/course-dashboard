@@ -16,7 +16,7 @@
 
   <div class="max-w-7xl mx-auto space-y-6">
     
-    <!-- قسم تسجيلات الدورة والأسابيع -->
+    <!-- قسم تسجيلات الدورة (الفيديوهات المسجلة) -->
     <div class="custom-card p-6 space-y-6">
       <div class="bg-[#3b3b3b] text-center py-3 px-6 rounded-full font-bold text-xl border border-gray-600">
         تسجيل الدورة
@@ -26,7 +26,7 @@
       </div>
     </div>
 
-    <!-- الأقسام الثلاثة جنب بعض (إعلانات 2، إعلانات 1، الواجبات) -->
+    <!-- الأقسام الثلاثة جنب بعض -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       
       <!-- إعلانات الدورة 2 -->
@@ -77,8 +77,20 @@
       return arabicNumbers[num] ? `الأسبوع ${arabicNumbers[num]}` : `الأسبوع ${num}`;
     }
 
+    // دالة لتحويل روابط يوتيوب العادية إلى رابط تضمين (Embed) إذا لزم الأمر، أو عرض الفيديو مباشرة
+    function getEmbedUrl(url) {
+      if (!url) return '';
+      let videoId = '';
+      if (url.includes('youtube.com/watch?v=')) {
+        videoId = url.split('v=')[1]?.split('&')[0];
+      } else if (url.includes('youtu.be/')) {
+        videoId = url.split('youtu.be/')[1]?.split('?')[0];
+      }
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : '';
+    }
+
     async function loadAllData() {
-      // 1. جلب محتوى الأسبوع والأسابيع
+      // 1. جلب تسجيلات الدورة والمحاضرات المسجلة
       const { data: weeklyData, error: weeklyErr } = await supabaseClient
         .from('weekly_content')
         .select('*')
@@ -99,23 +111,40 @@
         Object.keys(weeksMap).sort((a, b) => a - b).forEach(wNum => {
           const lectures = weeksMap[wNum];
           weeklyHtml += `
-            <div class="inner-card p-4 space-y-3 border border-gray-600">
+            <div class="inner-card p-4 space-y-4 border border-gray-600">
               <div class="font-bold text-yellow-400 text-base border-b border-gray-600 pb-2 flex justify-between items-center">
                 <span>📅 ${getWeekLabel(wNum)}</span>
-                <span class="text-xs bg-gray-600 px-2.5 py-1 rounded text-white">${lectures.length} محاضرات</span>
+                <span class="text-xs bg-gray-600 px-2.5 py-1 rounded text-white">${lectures.length} محاضرات مسجلة</span>
               </div>
-              <div class="space-y-2">
+              <div class="space-y-4">
           `;
 
           lectures.forEach(lec => {
+            const embedUrl = getEmbedUrl(lec.video_url);
             weeklyHtml += `
-              <div class="bg-[#3b3b3b] p-3 rounded-lg space-y-2 border border-gray-700">
+              <div class="bg-[#3b3b3b] p-4 rounded-lg space-y-3 border border-gray-700">
                 <div class="font-bold text-sm text-yellow-300">${lec.title || '(بدون عنوان)'}</div>
-                ${lec.description ? `<p class="text-xs text-gray-200">${lec.description}</p>` : ''}
-                <div class="flex gap-2 flex-wrap pt-1">
-                  ${lec.video_url ? `<a href="${lec.video_url}" target="_blank" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded">مشاهدة الفيديو 🎥</a>` : ''}
-                  ${lec.file_url ? `<a href="${lec.file_url}" target="_blank" class="bg-green-600 hover:bg-green-500 text-white text-xs font-bold px-3 py-1 rounded">تحميل المرفق 📎</a>` : ''}
-                </div>
+                ${lec.description ? `<p class="text-xs text-gray-200 leading-relaxed">${lec.description}</p>` : ''}
+                
+                ${embedUrl ? `
+                  <div class="relative w-full aspect-video rounded-lg overflow-hidden border border-gray-700 bg-black">
+                    <iframe src="${embedUrl}" class="w-full h-full" frameborder="0" allowfullscreen></iframe>
+                  </div>
+                ` : (lec.video_url ? `
+                  <div>
+                    <a href="${lec.video_url}" target="_blank" class="inline-block bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2 rounded transition">
+                      مشاهدة الفيديو المسجل 🎥
+                    </a>
+                  </div>
+                ` : '')}
+
+                ${lec.file_url ? `
+                  <div>
+                    <a href="${lec.file_url}" target="_blank" class="inline-block bg-green-600 hover:bg-green-500 text-white text-xs font-bold px-4 py-2 rounded transition">
+                      تحميل المرفق 📎
+                    </a>
+                  </div>
+                ` : ''}
               </div>
             `;
           });
@@ -124,7 +153,7 @@
         weeklyContainer.innerHTML = weeklyHtml;
       }
 
-      // 2. جلب الواجبات والإعلانات من جدول dashboard_items
+      // 2. جلب إعلانات الدورة 1 و 2 والواجبات
       const { data: dashData, error: dashErr } = await supabaseClient
         .from('dashboard_items')
         .select('*')
