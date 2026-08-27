@@ -45,14 +45,15 @@
 
     </div>
 
-    <!-- القسم السفلي: أزرار تسجيلات الأسابيع الديناميكية -->
+    <!-- القسم السفلي: أزرار تسجيلات الأسابيع الديناميكية بالكامل -->
     <div class="custom-card p-4 space-y-4">
       <div class="bg-[#3b3b3b] text-center py-3 px-6 rounded-full font-bold text-lg border border-gray-600">
         تسجيل الدورة
       </div>
 
+      <!-- شبكة فارغة تماماً يتم تعبئتها ديناميكياً من قاعدة البيانات حسب إضافة الأدمن -->
       <div id="weekly-buttons-grid" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="inner-card p-4 text-center text-gray-400 text-sm col-span-full">جاري تحميل الأسابيع...</div>
+        <div class="inner-card p-4 text-center text-gray-400 text-sm col-span-full">جاري التحميل...</div>
       </div>
     </div>
 
@@ -64,15 +65,13 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     async function fetchDashboardData() {
-      // جلب بيانات لوحة المعلومات
+      // 1. جلب بيانات لوحة المعلومات (الواجبات والإعلانات)
       const { data: dashData, error: dashError } = await supabaseClient
         .from('dashboard_items')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (dashError) {
-        console.error('خطأ في جلب بيانات لوحة المعلومات:', dashError);
-      } else {
+      if (!dashError) {
         const sections = [
           { key: 'assignments', id: 'assignments-list' },
           { key: 'announcements_1', id: 'announcements-1-list' },
@@ -99,7 +98,7 @@
         });
       }
 
-      // جلب الأسابيع المضافة ديناميكياً من جدول المحتوى الأسبوعي
+      // 2. جلب الأسابيع المضافة ديناميكياً من جدول المحتوى الأسبوعي
       const { data: weeklyData, error: weeklyError } = await supabaseClient
         .from('weekly_content')
         .select('*')
@@ -112,7 +111,6 @@
         return;
       }
 
-      // استخراج أرقام الأسابيع الفريدة المضافة فقط
       const uniqueWeeks = [...new Set(weeklyData.map(item => item.week_number))].filter(Boolean).sort((a, b) => a - b);
 
       if (uniqueWeeks.length === 0) {
@@ -120,7 +118,6 @@
         return;
       }
 
-      // تحويل رقم الأسبوع إلى النص العربي (الأول، الثاني، إلخ...)
       const arabicNumbers = {
         1: 'الأول', 2: 'الثاني', 3: 'الثالث', 4: 'الرابع', 5: 'الخامس', 6: 'السادس',
         7: 'السابع', 8: 'الثامن', 9: 'التاسع', 10: 'العاشر', 11: 'الحادي عشر', 12: 'الثاني عشر',
@@ -146,7 +143,6 @@
       if (error || !data || data.length === 0) {
         alert(`الأسبوع ${weekNum}: لا توجد تسجيلات مضافة حتى الآن.`);
       } else {
-        // عرض أول محتوى أو فتح رابط الفيديو للأسبوع المحدد
         const item = data[0];
         if (item.video_url) {
           window.open(item.video_url, '_blank');
