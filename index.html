@@ -39,17 +39,8 @@
       13: 'الثالث عشر', 14: 'الرابع عشر', 15: 'الخامس عشر', 16: 'السادس عشر', 17: 'السابع عشر', 18: 'الثامن عشر'
     };
 
-    const lectureArabicNumbers = {
-      1: 'الأولى', 2: 'الثانية', 3: 'الثالثة', 4: 'الرابعة', 5: 'الخامسة', 6: 'السادسة',
-      7: 'السابعة', 8: 'الثامنة', 9: 'التاسعة', 10: 'العاشرة'
-    };
-
     function getWeekLabel(num) {
       return arabicNumbers[num] ? `الأسبوع ${arabicNumbers[num]}` : `الأسبوع ${num}`;
-    }
-
-    function getLectureLabel(num) {
-      return lectureArabicNumbers[num] ? `المحاضرة ${lectureArabicNumbers[num]}` : `المحاضرة ${num}`;
     }
 
     async function loadCourseContent() {
@@ -92,14 +83,11 @@
             <div class="space-y-3">
         `;
 
-        lectures.forEach((lecture, index) => {
-          const defaultTitle = getLectureLabel(index + 1);
-          const displayTitle = lecture.title && lecture.title.trim() !== '' ? lecture.title : defaultTitle;
-
+        lectures.forEach((lecture) => {
           html += `
             <div class="bg-[#3b3b3b] p-4 rounded-lg space-y-3 border border-gray-700">
               <div class="flex justify-between items-center flex-wrap gap-2">
-                <span class="font-bold text-base text-yellow-300">${displayTitle}</span>
+                <span class="font-bold text-base text-yellow-300">${lecture.title || '(بدون عنوان)'}</span>
               </div>
           `;
 
