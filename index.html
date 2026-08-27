@@ -45,19 +45,14 @@
 
     </div>
 
-    <!-- القسم السفلي: أزرار تسجيلات الأسابيع -->
+    <!-- القسم السفلي: أزرار تسجيلات الأسابيع الديناميكية -->
     <div class="custom-card p-4 space-y-4">
       <div class="bg-[#3b3b3b] text-center py-3 px-6 rounded-full font-bold text-lg border border-gray-600">
         تسجيل الدورة
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div onclick="loadWeekContent(1)" class="inner-card p-8 text-center font-bold text-xl cursor-pointer hover:bg-gray-600 transition">الأسبوع الأول</div>
-        <div onclick="loadWeekContent(2)" class="inner-card p-8 text-center font-bold text-xl cursor-pointer hover:bg-gray-600 transition">الأسبوع الثاني</div>
-        <div onclick="loadWeekContent(3)" class="inner-card p-8 text-center font-bold text-xl cursor-pointer hover:bg-gray-600 transition">الأسبوع الثالث</div>
-        <div onclick="loadWeekContent(4)" class="inner-card p-8 text-center font-bold text-xl cursor-pointer hover:bg-gray-600 transition">الأسبوع الرابع</div>
-        <div onclick="loadWeekContent(5)" class="inner-card p-8 text-center font-bold text-xl cursor-pointer hover:bg-gray-600 transition">الأسبوع الخامس</div>
-        <div onclick="loadWeekContent(6)" class="inner-card p-8 text-center font-bold text-xl cursor-pointer hover:bg-gray-600 transition">الأسبوع السادس</div>
+      <div id="weekly-buttons-grid" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="inner-card p-4 text-center text-gray-400 text-sm col-span-full">جاري تحميل الأسابيع...</div>
       </div>
     </div>
 
@@ -69,43 +64,77 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     async function fetchDashboardData() {
-      const { data, error } = await supabaseClient
+      // جلب بيانات لوحة المعلومات
+      const { data: dashData, error: dashError } = await supabaseClient
         .from('dashboard_items')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('خطأ في جلب البيانات:', error);
-        alert('حدث خطأ أثناء جلب البيانات: ' + error.message);
+      if (dashError) {
+        console.error('خطأ في جلب بيانات لوحة المعلومات:', dashError);
+      } else {
+        const sections = [
+          { key: 'assignments', id: 'assignments-list' },
+          { key: 'announcements_1', id: 'announcements-1-list' },
+          { key: 'announcements_2', id: 'announcements-2-list' }
+        ];
+
+        sections.forEach(sec => {
+          const container = document.getElementById(sec.id);
+          if (!container) return;
+
+          const filtered = dashData ? dashData.filter(item => item.section_type && item.section_type.trim() === sec.key) : [];
+
+          if (filtered.length === 0) {
+            container.innerHTML = '<div class="inner-card p-4 text-center text-gray-400 text-sm">لا يوجد محتوى حالياً</div>';
+          } else {
+            container.innerHTML = filtered.map(item => `
+              <div class="inner-card p-4 space-y-2">
+                <h4 class="font-bold text-sm text-white">${item.title}</h4>
+                ${item.content ? `<p class="text-xs text-gray-300 leading-relaxed">${item.content}</p>` : ''}
+                ${item.file_url ? `<a href="${item.file_url}" target="_blank" class="text-xs text-blue-300 underline block font-semibold hover:text-blue-200">📥 تحميل المرفق</a>` : ''}
+              </div>
+            `).join('');
+          }
+        });
+      }
+
+      // جلب الأسابيع المضافة ديناميكياً من جدول المحتوى الأسبوعي
+      const { data: weeklyData, error: weeklyError } = await supabaseClient
+        .from('weekly_content')
+        .select('*')
+        .order('week_number', { ascending: true });
+
+      const weeklyGrid = document.getElementById('weekly-buttons-grid');
+
+      if (weeklyError || !weeklyData || weeklyData.length === 0) {
+        weeklyGrid.innerHTML = '<div class="inner-card p-4 text-center text-gray-400 text-sm col-span-full">لا توجد تسجيلات متاحة حتى الآن</div>';
         return;
       }
 
-      // مصفوفة الأقسام للربط الصحيح مع معرّفات الـ HTML
-      const sections = [
-        { key: 'assignments', id: 'assignments-list' },
-        { key: 'announcements_1', id: 'announcements-1-list' },
-        { key: 'announcements_2', id: 'announcements-2-list' }
-      ];
+      // استخراج أرقام الأسابيع الفريدة المضافة فقط
+      const uniqueWeeks = [...new Set(weeklyData.map(item => item.week_number))].filter(Boolean).sort((a, b) => a - b);
 
-      sections.forEach(sec => {
-        const container = document.getElementById(sec.id);
-        if (!container) return;
+      if (uniqueWeeks.length === 0) {
+        weeklyGrid.innerHTML = '<div class="inner-card p-4 text-center text-gray-400 text-sm col-span-full">لا توجد تسجيلات متاحة حتى الآن</div>';
+        return;
+      }
 
-        // فلترة العناصر المطابقة للقسم (مع تجاهل الفراغات وحالة الكلمات)
-        const filtered = data ? data.filter(item => item.section_type && item.section_type.trim() === sec.key) : [];
+      // تحويل رقم الأسبوع إلى النص العربي (الأول، الثاني، إلخ...)
+      const arabicNumbers = {
+        1: 'الأول', 2: 'الثاني', 3: 'الثالث', 4: 'الرابع', 5: 'الخامس', 6: 'السادس',
+        7: 'السابع', 8: 'الثامن', 9: 'التاسع', 10: 'العاشر', 11: 'الحادي عشر', 12: 'الثاني عشر',
+        13: 'الثالث عشر', 14: 'الرابع عشر', 15: 'الخامس عشر', 16: 'السادس عشر', 17: 'السابع عشر', 18: 'الثامن عشر'
+      };
 
-        if (filtered.length === 0) {
-          container.innerHTML = '<div class="inner-card p-4 text-center text-gray-400 text-sm">لا يوجد محتوى حالياً</div>';
-        } else {
-          container.innerHTML = filtered.map(item => `
-            <div class="inner-card p-4 space-y-2">
-              <h4 class="font-bold text-sm text-white">${item.title}</h4>
-              ${item.content ? `<p class="text-xs text-gray-300 leading-relaxed">${item.content}</p>` : ''}
-              ${item.file_url ? `<a href="${item.file_url}" target="_blank" class="text-xs text-blue-300 underline block font-semibold hover:text-blue-200">📥 تحميل المرفق</a>` : ''}
-            </div>
-          `).join('');
-        }
-      });
+      weeklyGrid.innerHTML = uniqueWeeks.map(weekNum => {
+        const weekText = arabicNumbers[weekNum] ? `الأسبوع ${arabicNumbers[weekNum]}` : `الأسبوع ${weekNum}`;
+        return `
+          <div onclick="loadWeekContent(${weekNum})" class="inner-card p-8 text-center font-bold text-xl cursor-pointer hover:bg-gray-600 transition">
+            ${weekText}
+          </div>
+        `;
+      }).join('');
     }
 
     async function loadWeekContent(weekNum) {
@@ -117,6 +146,7 @@
       if (error || !data || data.length === 0) {
         alert(`الأسبوع ${weekNum}: لا توجد تسجيلات مضافة حتى الآن.`);
       } else {
+        // عرض أول محتوى أو فتح رابط الفيديو للأسبوع المحدد
         const item = data[0];
         if (item.video_url) {
           window.open(item.video_url, '_blank');
