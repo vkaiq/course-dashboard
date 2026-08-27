@@ -15,27 +15,49 @@
 <body class="p-6 font-sans">
 
   <div class="max-w-4xl mx-auto space-y-6">
-    
-    <!-- قسم مشغل الفيديو الرئيسي للمحاضرة المحددة -->
-    <div class="custom-card p-6 space-y-4">
-      <div id="video-player-container" class="relative w-full aspect-video rounded-xl overflow-hidden border border-gray-700 bg-black flex items-center justify-center">
-        <span class="text-gray-400 text-sm">لا يوجد فيديو مرفق لهذه المحاضرة</span>
+
+    <!-- 1. عرض قائمة الأسابيع (الصفحة الرئيسية) -->
+    <div id="weeks-view" class="custom-card p-6 space-y-6">
+      <div class="bg-[#3b3b3b] text-center py-3 px-6 rounded-full font-bold text-xl border border-gray-600">
+        تسجيل الدورة
       </div>
-      <div class="inner-card p-4 space-y-2">
-        <h2 id="current-lecture-title" class="font-bold text-lg text-yellow-300">عنوان المحاضرة</h2>
-        <p id="current-lecture-desc" class="text-sm text-gray-200 leading-relaxed">وصف المحاضرة أو التفاصيل تظهر هنا...</p>
-        <div id="current-lecture-file" class="pt-2"></div>
+      <div id="weeks-container" class="space-y-4">
+        <div class="inner-card p-6 text-center text-gray-400 text-sm">جاري تحميل الأسابيع...</div>
       </div>
     </div>
 
-    <!-- قسم قائمة المحاضرات مقسمة حسب الأسابيع -->
-    <div class="custom-card p-6 space-y-6">
-      <div class="bg-[#3b3b3b] text-center py-3 px-6 rounded-full font-bold text-xl border border-gray-600">
-        المحاضرات
+    <!-- 2. عرض تفاصيل المحاضرات ومشغل الفيديو للأسبوع المحدد -->
+    <div id="lectures-view" class="space-y-6 hidden">
+      
+      <!-- زر الرجوع لقائمة الأسابيع -->
+      <div>
+        <button onclick="showWeeksView()" class="bg-gray-600 hover:bg-gray-500 text-white font-bold text-xs px-4 py-2 rounded-lg transition flex items-center gap-2">
+          ⬅ العودة إلى قائمة الأسابيع
+        </button>
       </div>
-      <div id="weekly-content-container" class="space-y-4">
-        <div class="inner-card p-6 text-center text-gray-400 text-sm">جاري تحميل الأسابيع والمحاضرات...</div>
+
+      <!-- مشغل الفيديو الرئيسي -->
+      <div class="custom-card p-6 space-y-4">
+        <div id="video-player-container" class="relative w-full aspect-video rounded-xl overflow-hidden border border-gray-700 bg-black flex items-center justify-center">
+          <span class="text-gray-400 text-sm">لا يوجد فيديو مرفق لهذه المحاضرة</span>
+        </div>
+        <div class="inner-card p-4 space-y-2">
+          <h2 id="current-lecture-title" class="font-bold text-lg text-yellow-300">عنوان المحاضرة</h2>
+          <p id="current-lecture-desc" class="text-sm text-gray-200 leading-relaxed">وصف المحاضرة أو التفاصيل تظهر هنا...</p>
+          <div id="current-lecture-file" class="pt-2"></div>
+        </div>
       </div>
+
+      <!-- قائمة محاضرات الأسبوع المختار -->
+      <div class="custom-card p-6 space-y-6">
+        <div id="selected-week-title" class="bg-[#3b3b3b] text-center py-3 px-6 rounded-full font-bold text-xl border border-gray-600">
+          المحاضرات
+        </div>
+        <div id="lectures-container" class="space-y-4">
+          <!-- المحاضرات تعبأ تلقائياً -->
+        </div>
+      </div>
+
     </div>
 
   </div>
@@ -65,6 +87,105 @@
       return videoId ? `https://www.youtube.com/embed/${videoId}` : '';
     }
 
+    let allWeeklyData = {};
+
+    async function initApp() {
+      const { data: weeklyData, error } = await supabaseClient
+        .from('weekly_content')
+        .select('*')
+        .order('id', { ascending: true });
+
+      const weeksContainer = document.getElementById('weeks-container');
+
+      if (error || !weeklyData || weeklyData.length === 0) {
+        weeksContainer.innerHTML = `<div class="inner-card p-6 text-center text-gray-400 text-sm">لا توجد تسجيلات متاحة حتى الآن</div>`;
+        return;
+      }
+
+      // تجميع البيانات حسب الأسبوع
+      allWeeklyData = {};
+      weeklyData.forEach(item => {
+        let wNum = item.week_number || 1;
+        if (!allWeeklyData[wNum]) allWeeklyData[wNum] = [];
+        allWeeklyData[wNum].push(item);
+      });
+
+      let weeksHtml = '';
+      Object.keys(allWeeklyData).sort((a, b) => a - b).forEach(wNum => {
+        const lectures = allWeeklyData[wNum];
+        const weekLabel = getWeekLabel(wNum);
+
+        weeksHtml += `
+          <div class="inner-card p-4 space-y-3 border border-gray-600 cursor-pointer hover:border-yellow-400 transition week-card" data-week="${wNum}">
+            <div class="font-bold text-yellow-400 text-lg border-b border-gray-600 pb-2 flex justify-between items-center">
+              <span>📅 ${weekLabel}</span>
+              <span class="text-xs bg-gray-600 px-2.5 py-1 rounded text-white">${lectures.length} محاضرات مسجلة</span>
+            </div>
+            <div class="space-y-2">
+        `;
+
+        lectures.forEach(lec => {
+          weeksHtml += `
+            <div class="bg-[#3b3b3b] p-3 rounded-lg border border-gray-700">
+              <div class="font-bold text-sm text-yellow-300">${lec.title || '(بدون عنوان)'}</div>
+              ${lec.description ? `<p class="text-xs text-gray-300 mt-1">${lec.description}</p>` : ''}
+            </div>
+          `;
+        });
+
+        weeksHtml += `</div></div>`;
+      });
+
+      weeksContainer.innerHTML = weeksHtml;
+
+      // تفعيل النقر على الأسبوع للانتقال لصفحة المحاضرات الخاصة به
+      document.querySelectorAll('.week-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const wNum = card.getAttribute('data-week');
+          openWeekLectures(wNum);
+        });
+      });
+    }
+
+    function openWeekLectures(wNum) {
+      const lectures = allWeeklyData[wNum];
+      if (!lectures || lectures.length === 0) return;
+
+      document.getElementById('weeks-view').classList.add('hidden');
+      document.getElementById('lectures-view').classList.remove('hidden');
+
+      document.getElementById('selected-week-title').textContent = `محاضرات ${getWeekLabel(wNum)}`;
+
+      const lecturesContainer = document.getElementById('lectures-container');
+      let html = '';
+
+      lectures.forEach((lec, index) => {
+        html += `
+          <div class="bg-[#3b3b3b] p-4 rounded-lg flex justify-between items-center border border-gray-700 hover:border-yellow-400 transition cursor-pointer lecture-select-item" data-index="${index}">
+            <div>
+              <span class="font-bold text-sm text-yellow-300">${lec.title || '(بدون عنوان)'}</span>
+              ${lec.description ? `<p class="text-xs text-gray-300 mt-1">${lec.description}</p>` : ''}
+            </div>
+            <span class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded font-bold shrink-0">عرض المحاضرة ▶</span>
+          </div>
+        `;
+      });
+
+      lecturesContainer.innerHTML = html;
+
+      // عرض أول محاضرة افتراضياً في المشغل
+      displayLectureInPlayer(lectures[0]);
+
+      // تفعيل النقر على أي محاضرة لتغيير الفيديو في المشغل
+      document.querySelectorAll('.lecture-select-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const idx = item.getAttribute('data-index');
+          displayLectureInPlayer(lectures[idx]);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      });
+    }
+
     function displayLectureInPlayer(lecture) {
       const playerContainer = document.getElementById('video-player-container');
       const titleEl = document.getElementById('current-lecture-title');
@@ -90,76 +211,13 @@
       }
     }
 
-    async function loadCourseData() {
-      const container = document.getElementById('weekly-content-container');
-
-      const { data: weeklyData, error } = await supabaseClient
-        .from('weekly_content')
-        .select('*')
-        .order('id', { ascending: true });
-
-      if (error || !weeklyData || weeklyData.length === 0) {
-        container.innerHTML = `<div class="inner-card p-6 text-center text-gray-400 text-sm">لا توجد محاضرات متاحة حتى الآن</div>`;
-        return;
-      }
-
-      let weeksMap = {};
-      weeklyData.forEach(item => {
-        let wNum = item.week_number || 1;
-        if (!weeksMap[wNum]) weeksMap[wNum] = [];
-        weeksMap[wNum].push(item);
-      });
-
-      let html = '';
-      let firstLecture = null;
-
-      Object.keys(weeksMap).sort((a, b) => a - b).forEach(wNum => {
-        const lectures = weeksMap[wNum];
-        if (!firstLecture && lectures.length > 0) {
-          firstLecture = lectures[0];
-        }
-
-        html += `
-          <div class="inner-card p-4 space-y-3 border border-gray-600">
-            <div class="font-bold text-yellow-400 text-base border-b border-gray-600 pb-2 flex justify-between items-center">
-              <span>📅 ${getWeekLabel(wNum)}</span>
-              <span class="text-xs bg-gray-600 px-2.5 py-1 rounded text-white">${lectures.length} محاضرات</span>
-            </div>
-            <div class="space-y-2">
-        `;
-
-        lectures.forEach(lec => {
-          html += `
-            <div class="bg-[#3b3b3b] p-3 rounded-lg flex justify-between items-center border border-gray-700 hover:border-yellow-400 transition cursor-pointer lecture-item" data-id="${lec.id}">
-              <span class="font-bold text-sm text-yellow-300">${lec.title || '(بدون عنوان)'}</span>
-              <span class="text-xs bg-blue-600 text-white px-3 py-1 rounded font-bold">عرض المحاضرة ▶</span>
-            </div>
-          `;
-        });
-
-        html += `</div></div>`;
-      });
-
-      container.innerHTML = html;
-
-      if (firstLecture) {
-        displayLectureInPlayer(firstLecture);
-      }
-
-      // ربط الحدث لتغيير المحاضرة عند النقر عليها من القائمة
-      document.querySelectorAll('.lecture-item').forEach(item => {
-        item.addEventListener('click', () => {
-          const lecId = item.getAttribute('data-id');
-          const selectedLec = weeklyData.find(l => l.id == lecId);
-          if (selectedLec) {
-            displayLectureInPlayer(selectedLec);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }
-        });
-      });
+    function showWeeksView() {
+      document.getElementById('lectures-view').classList.add('hidden');
+      document.getElementById('weeks-view').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    loadCourseData();
+    initApp();
   </script>
 </body>
 </html>
