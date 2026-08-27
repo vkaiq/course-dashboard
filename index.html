@@ -71,10 +71,10 @@
         محاضرات الأسبوع
       </div>
 
-      <!-- تخطيط الفيديو والقائمة الجانبية (مثل صورتك تماماً) -->
+      <!-- تخطيط الفيديو والقائمة الجانبية -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        <!-- مشغل الفيديو (يشغل مساحتين) -->
+        <!-- مشغل الفيديو -->
         <div class="custom-card p-4 lg:col-span-2 space-y-4 flex flex-col justify-center items-center">
           <div id="video-container" class="w-full aspect-video bg-black rounded-xl overflow-hidden flex items-center justify-center border border-gray-700">
             <p class="text-gray-400 text-sm">اختر محاضرة من القائمة الجانبية للعرض</p>
@@ -89,7 +89,7 @@
         <div class="custom-card p-4 space-y-3">
           <div class="bg-[#3b3b3b] text-center py-2 px-4 rounded-full font-bold border border-gray-600">المحاضرات</div>
           <div id="lectures-sidebar-list" class="space-y-2 max-h-[400px] overflow-y-auto">
-            <!-- تتعبى ديناميكياً محاضرات الأسبوع -->
+            <!-- تتعبى ديناميكياً -->
           </div>
         </div>
 
@@ -109,7 +109,6 @@
     };
 
     async function fetchDashboardData() {
-      // 1. جلب الواجبات والإعلانات
       const { data: dashData } = await supabaseClient.from('dashboard_items').select('*').order('created_at', { ascending: false });
 
       if (dashData) {
@@ -136,7 +135,6 @@
         });
       }
 
-      // 2. جلب الأسابيع لشبكة الصفحة الرئيسية
       const { data: weeklyData } = await supabaseClient.from('weekly_content').select('*').order('week_number', { ascending: true });
       const weeklyGrid = document.getElementById('weekly-buttons-grid');
 
@@ -157,7 +155,6 @@
       }).join('');
     }
 
-    // فتح صفحة الأسبوع والمحاضرات الخاصة به
     async function openWeekPage(weekNum) {
       document.getElementById('main-view').classList.add('hidden');
       document.getElementById('week-view').classList.remove('hidden');
@@ -177,25 +174,21 @@
         return;
       }
 
-      // عرض القائمة الجانبية للمحاضرات
-      sidebarList.innerHTML = data.map((item, index) => `
+      sidebarList.innerHTML = data.map((item) => `
         <div onclick='playLecture(${JSON.stringify(item)})' class="inner-card p-3 text-center font-bold text-sm cursor-pointer hover:bg-gray-600 transition">
           ${item.title}
         </div>
       `).join('');
 
-      // تشغيل أول محاضرة تلقائياً إذا كانت موجودة
       playLecture(data[0]);
     }
 
-    // تشغيل المحاضرة في المشغل الكبير
     function playLecture(item) {
       document.getElementById('current-lecture-title').innerText = item.title || 'بدون عنوان';
       document.getElementById('current-lecture-desc').innerText = item.description || '';
 
       const videoContainer = document.getElementById('video-container');
       if (item.video_url) {
-        // تحويل روابط يوتيوب العادية إلى إمبد إذا لزم الأمر أو تشغيل الرابط المباشر
         let embedUrl = item.video_url;
         if (embedUrl.includes('watch?v=')) {
           embedUrl = embedUrl.replace('watch?v=', 'embed/');
@@ -206,7 +199,6 @@
       }
     }
 
-    // العودة بسلاسة للرئيسية بدون الخروج من الصفحة
     function goBackToMain() {
       document.getElementById('week-view').classList.add('hidden');
       document.getElementById('main-view').classList.remove('hidden');
