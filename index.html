@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>تسجيلات الدورة</title>
+  <title>لوحة الدورة</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -14,16 +14,51 @@
 </head>
 <body class="p-6 font-sans">
 
-  <div class="max-w-4xl mx-auto space-y-6">
+  <div class="max-w-7xl mx-auto space-y-6">
     
+    <!-- قسم تسجيلات الدورة والأسابيع -->
     <div class="custom-card p-6 space-y-6">
       <div class="bg-[#3b3b3b] text-center py-3 px-6 rounded-full font-bold text-xl border border-gray-600">
         تسجيل الدورة
       </div>
-
-      <div id="course-content-container" class="space-y-4">
-        <div class="inner-card p-6 text-center text-gray-400 text-sm">جاري تحميل تسجيلات الدورة...</div>
+      <div id="weekly-content-container" class="space-y-4">
+        <div class="inner-card p-6 text-center text-gray-400 text-sm">جاري تحميل التسجيلات...</div>
       </div>
+    </div>
+
+    <!-- الأقسام الثلاثة جنب بعض (إعلانات 2، إعلانات 1، الواجبات) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      
+      <!-- إعلانات الدورة 2 -->
+      <div class="custom-card p-4 space-y-4">
+        <div class="bg-[#3b3b3b] text-center py-3 px-4 rounded-full font-bold text-lg border border-gray-600">
+          إعلانات الدورة 2
+        </div>
+        <div id="announcements-2-container" class="space-y-3">
+          <div class="inner-card p-4 text-center text-gray-400 text-xs">جاري التحميل...</div>
+        </div>
+      </div>
+
+      <!-- إعلانات الدورة 1 -->
+      <div class="custom-card p-4 space-y-4">
+        <div class="bg-[#3b3b3b] text-center py-3 px-4 rounded-full font-bold text-lg border border-gray-600">
+          إعلانات الدورة 1
+        </div>
+        <div id="announcements-1-container" class="space-y-3">
+          <div class="inner-card p-4 text-center text-gray-400 text-xs">جاري التحميل...</div>
+        </div>
+      </div>
+
+      <!-- الواجبات -->
+      <div class="custom-card p-4 space-y-4">
+        <div class="bg-[#3b3b3b] text-center py-3 px-4 rounded-full font-bold text-lg border border-gray-600">
+          الواجبات
+        </div>
+        <div id="assignments-container" class="space-y-3">
+          <div class="inner-card p-4 text-center text-gray-400 text-xs">جاري التحميل...</div>
+        </div>
+      </div>
+
     </div>
 
   </div>
@@ -35,108 +70,107 @@
 
     const arabicNumbers = {
       1: 'الأول', 2: 'الثاني', 3: 'الثالث', 4: 'الرابع', 5: 'الخامس', 6: 'السادس',
-      7: 'السابع', 8: 'الثامن', 9: 'التاسع', 10: 'العاشر', 11: 'الحادي عشر', 12: 'الثاني عشر',
-      13: 'الثالث عشر', 14: 'الرابع عشر', 15: 'الخامس عشر', 16: 'السادس عشر', 17: 'السابع عشر', 18: 'الثامن عشر'
-    };
-
-    const lectureArabicNumbers = {
-      1: 'الأولى', 2: 'الثانية', 3: 'الثالثة', 4: 'الرابعة', 5: 'الخامسة', 6: 'السادسة',
-      7: 'السابعة', 8: 'الثامنة', 9: 'التاسعة', 10: 'العاشرة'
+      7: 'السابع', 8: 'الثامن', 9: 'التاسع', 10: 'العاشر'
     };
 
     function getWeekLabel(num) {
       return arabicNumbers[num] ? `الأسبوع ${arabicNumbers[num]}` : `الأسبوع ${num}`;
     }
 
-    function getLectureLabel(num) {
-      return lectureArabicNumbers[num] ? `المحاضرة ${lectureArabicNumbers[num]}` : `المحاضرة ${num}`;
-    }
-
-    async function loadCourseContent() {
-      const container = document.getElementById('course-content-container');
-
-      const { data: weekly, error } = await supabaseClient
+    async function loadAllData() {
+      // 1. جلب محتوى الأسبوع والأسابيع
+      const { data: weeklyData, error: weeklyErr } = await supabaseClient
         .from('weekly_content')
         .select('*')
         .order('id', { ascending: true });
 
-      if (error) {
-        container.innerHTML = `<div class="inner-card p-4 text-center text-red-400 text-sm">خطأ في تحميل البيانات: ${error.message}</div>`;
-        return;
-      }
-
-      if (!weekly || weekly.length === 0) {
-        container.innerHTML = `<div class="inner-card p-6 text-center text-gray-400 text-sm">لا توجد تسجيلات متاحة حتى الآن</div>`;
-        return;
-      }
-
-      let weeksMap = {};
-      weekly.forEach(item => {
-        let wNum = item.week_number || 1;
-        if (!weeksMap[wNum]) weeksMap[wNum] = [];
-        weeksMap[wNum].push(item);
-      });
-
-      let html = '';
-
-      Object.keys(weeksMap).sort((a, b) => a - b).forEach(wNum => {
-        const weekName = getWeekLabel(wNum);
-        const lectures = weeksMap[wNum];
-
-        html += `
-          <div class="inner-card p-4 space-y-4 border border-gray-600">
-            <div class="font-bold text-yellow-400 text-lg border-b border-gray-600 pb-2 flex justify-between items-center">
-              <span>📅 ${weekName}</span>
-              <span class="text-xs bg-gray-600 px-2.5 py-1 rounded text-white">${lectures.length} محاضرات</span>
-            </div>
-            <div class="space-y-3">
-        `;
-
-        lectures.forEach((lecture, index) => {
-          const defaultTitle = getLectureLabel(index + 1);
-          const displayTitle = lecture.title && lecture.title.trim() !== '' ? lecture.title : defaultTitle;
-
-          html += `
-            <div class="bg-[#3b3b3b] p-4 rounded-lg space-y-3 border border-gray-700">
-              <div class="flex justify-between items-center flex-wrap gap-2">
-                <span class="font-bold text-base text-yellow-300">${displayTitle}</span>
-              </div>
-          `;
-
-          if (lecture.description) {
-            html += `<p class="text-sm text-gray-200 leading-relaxed">${lecture.description}</p>`;
-          }
-
-          if (lecture.video_url) {
-            html += `
-              <div class="pt-2">
-                <a href="${lecture.video_url}" target="_blank" class="inline-block bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2 rounded-lg transition">
-                  مشاهدة الفيديو 🎥
-                </a>
-              </div>
-            `;
-          }
-
-          if (lecture.file_url) {
-            html += `
-              <div class="pt-1">
-                <a href="${lecture.file_url}" target="_blank" class="inline-block bg-green-600 hover:bg-green-500 text-white font-bold text-xs px-4 py-2 rounded-lg transition">
-                  تحميل المرفق / الملف 📎
-                </a>
-              </div>
-            `;
-          }
-
-          html += `</div>`;
+      const weeklyContainer = document.getElementById('weekly-content-container');
+      if (weeklyErr || !weeklyData || weeklyData.length === 0) {
+        weeklyContainer.innerHTML = `<div class="inner-card p-6 text-center text-gray-400 text-sm">لا توجد تسجيلات متاحة حتى الآن</div>`;
+      } else {
+        let weeksMap = {};
+        weeklyData.forEach(item => {
+          let wNum = item.week_number || 1;
+          if (!weeksMap[wNum]) weeksMap[wNum] = [];
+          weeksMap[wNum].push(item);
         });
 
-        html += `</div></div>`;
+        let weeklyHtml = '';
+        Object.keys(weeksMap).sort((a, b) => a - b).forEach(wNum => {
+          const lectures = weeksMap[wNum];
+          weeklyHtml += `
+            <div class="inner-card p-4 space-y-3 border border-gray-600">
+              <div class="font-bold text-yellow-400 text-base border-b border-gray-600 pb-2 flex justify-between items-center">
+                <span>📅 ${getWeekLabel(wNum)}</span>
+                <span class="text-xs bg-gray-600 px-2.5 py-1 rounded text-white">${lectures.length} محاضرات</span>
+              </div>
+              <div class="space-y-2">
+          `;
+
+          lectures.forEach(lec => {
+            weeklyHtml += `
+              <div class="bg-[#3b3b3b] p-3 rounded-lg space-y-2 border border-gray-700">
+                <div class="font-bold text-sm text-yellow-300">${lec.title || '(بدون عنوان)'}</div>
+                ${lec.description ? `<p class="text-xs text-gray-200">${lec.description}</p>` : ''}
+                <div class="flex gap-2 flex-wrap pt-1">
+                  ${lec.video_url ? `<a href="${lec.video_url}" target="_blank" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded">مشاهدة الفيديو 🎥</a>` : ''}
+                  ${lec.file_url ? `<a href="${lec.file_url}" target="_blank" class="bg-green-600 hover:bg-green-500 text-white text-xs font-bold px-3 py-1 rounded">تحميل المرفق 📎</a>` : ''}
+                </div>
+              </div>
+            `;
+          });
+          weeklyHtml += `</div></div>`;
+        });
+        weeklyContainer.innerHTML = weeklyHtml;
+      }
+
+      // 2. جلب الواجبات والإعلانات من جدول dashboard_items
+      const { data: dashData, error: dashErr } = await supabaseClient
+        .from('dashboard_items')
+        .select('*')
+        .order('id', { ascending: true });
+
+      const ann2Container = document.getElementById('announcements-2-container');
+      const ann1Container = document.getElementById('announcements-1-container');
+      const assignContainer = document.getElementById('assignments-container');
+
+      if (dashErr || !dashData) {
+        ann2Container.innerHTML = `<div class="inner-card p-3 text-center text-gray-400 text-xs">لا توجد بيانات</div>`;
+        ann1Container.innerHTML = `<div class="inner-card p-3 text-center text-gray-400 text-xs">لا توجد بيانات</div>`;
+        assignContainer.innerHTML = `<div class="inner-card p-3 text-center text-gray-400 text-xs">لا توجد بيانات</div>`;
+        return;
+      }
+
+      let ann2Html = '', ann1Html = '', assignHtml = '';
+      let count2 = 0, count1 = 0, countAssign = 0;
+
+      dashData.forEach(item => {
+        let cardHtml = `
+          <div class="inner-card p-3 space-y-2 border border-gray-700">
+            <div class="font-bold text-sm text-white">${item.title || '(بدون عنوان)'}</div>
+            ${item.content ? `<p class="text-xs text-gray-300">${item.content}</p>` : ''}
+            ${item.file_url ? `<div class="pt-1"><a href="${item.file_url}" target="_blank" class="text-blue-400 hover:underline text-xs font-bold">تحميل المرفق 📎</a></div>` : ''}
+          </div>
+        `;
+
+        if (item.section_type === 'announcements_2') {
+          ann2Html += cardHtml;
+          count2++;
+        } else if (item.section_type === 'announcements_1') {
+          ann1Html += cardHtml;
+          count1++;
+        } else if (item.section_type === 'assignments') {
+          assignHtml += cardHtml;
+          countAssign++;
+        }
       });
 
-      container.innerHTML = html;
+      ann2Container.innerHTML = count2 > 0 ? ann2Html : `<div class="inner-card p-3 text-center text-gray-400 text-xs">لا توجد إعلانات</div>`;
+      ann1Container.innerHTML = count1 > 0 ? ann1Html : `<div class="inner-card p-3 text-center text-gray-400 text-xs">لا توجد إعلانات</div>`;
+      assignContainer.innerHTML = countAssign > 0 ? assignHtml : `<div class="inner-card p-3 text-center text-gray-400 text-xs">لا توجد واجبات</div>`;
     }
 
-    loadCourseContent();
+    loadAllData();
   </script>
 </body>
 </html>
