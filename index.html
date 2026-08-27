@@ -3,43 +3,93 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>المحاضرات المسجلة</title>
+  <title>لوحة التحكم - إدارة المحتوى</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { background-color: #333333; color: #ffffff; }
-    .outer-box { background-color: #3f3f3f; border: 2px solid #222222; border-radius: 1rem; }
-    .inner-box { background-color: #4a4a4a; border: 2px solid #2b2b2b; border-radius: 0.75rem; }
+    body { background-color: #1a1a1a; color: #ffffff; }
+    .custom-card { background-color: #2a2a2a; border: 1px solid #333333; border-radius: 1rem; }
   </style>
 </head>
 <body class="p-6 font-sans">
 
   <div class="max-w-4xl mx-auto space-y-6">
     
-    <!-- زر العودة -->
-    <div class="flex justify-between items-center">
-      <a href="student.html" class="bg-gray-600 hover:bg-gray-500 text-white text-xs font-bold px-4 py-2 rounded-lg transition">← العودة للرئيسية</a>
-      <h1 id="page-title" class="text-lg font-bold text-yellow-400">المحاضرات المسجلة</h1>
+    <div class="custom-card p-6 flex justify-between items-center">
+      <h1 class="text-xl font-bold text-yellow-400">لوحة التحكم والمحتوى</h1>
+      <a href="student.html" target="_blank" class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold px-4 py-2 rounded-lg transition">معاينة صفحة الطالب 👁️</a>
     </div>
 
-    <!-- قسم عرض الفيديو -->
-    <div class="outer-box p-6 space-y-4">
-      <div id="video-container" class="w-full bg-black rounded-lg overflow-hidden aspect-video flex items-center justify-center text-gray-400">
-        <p>جاري تحميل الفيديو...</p>
-      </div>
+    <div class="custom-card p-6 space-y-4">
+      <h2 id="form-title" class="text-lg font-bold text-yellow-400 border-b border-gray-700 pb-2">إضافة محتوى جديد</h2>
+      
+      <form id="content-form" onsubmit="handleFormSubmit(event)" class="space-y-4">
+        <input type="hidden" id="edit-item-id">
+        <input type="hidden" id="edit-item-table">
 
-      <div class="inner-box p-4 space-y-2">
-        <div id="current-lecture-title" class="font-bold text-yellow-400 text-sm">اختر محاضرة</div>
-        <div id="current-lecture-desc" class="text-xs text-gray-300">لا يوجد وصف...</div>
-        <div id="current-lecture-file" class="pt-2"></div>
-      </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">نوع القسم:</label>
+          <select id="section-type" onchange="toggleSectionFields()" class="w-full p-2 bg-[#333] border border-gray-700 rounded-lg text-white">
+            <option value="weekly_content">محتوى أسبوعي (محاضرات)</option>
+            <option value="announcements">إعلانات الدورة</option>
+            <option value="assignments">الواجبات</option>
+          </select>
+        </div>
+
+        <div id="weekly-fields" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">اختر الأسبوع:</label>
+            <select id="week-select" class="w-full p-2 bg-[#333] border border-gray-700 rounded-lg text-white">
+              <option value="1">الأسبوع الأول</option>
+              <option value="2">الأسبوع الثاني</option>
+              <option value="3">الأسبوع الثالث</option>
+              <option value="4">الأسبوع الرابع</option>
+              <option value="5">الأسبوع الخامس</option>
+              <option value="6">الأسبوع السادس</option>
+              <option value="7">الأسبوع السابع</option>
+              <option value="8">الأسبوع الثامن</option>
+              <option value="9">الأسبوع التاسع</option>
+              <option value="10">الأسبوع العاشر</option>
+              <option value="11">الأسبوع الحادي عشر</option>
+              <option value="12">الأسبوع الثاني عشر</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">رابط الفيديو (Embed URL):</label>
+            <input type="text" id="item-video" placeholder="مثال: رابط يوتيوب أو التضمين" class="w-full p-2 bg-[#333] border border-gray-700 rounded-lg text-white">
+          </div>
+        </div>
+
+        <div id="general-fields" class="space-y-4 hidden">
+          <div>
+            <label class="block text-sm font-medium mb-1">العنوان:</label>
+            <input type="text" id="item-title" placeholder="أدخل العنوان هنا..." class="w-full p-2 bg-[#333] border border-gray-700 rounded-lg text-white">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">الوصف أو التفاصيل:</label>
+          <textarea id="item-content" rows="3" placeholder="أدخل التفاصيل أو الوصف..." class="w-full p-2 bg-[#333] border border-gray-700 rounded-lg text-white"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">رفع ملف / مرفق (اختياري):</label>
+          <input type="file" id="item-file-upload" class="w-full p-2 bg-[#333] border border-gray-700 rounded-lg text-white text-sm">
+          <input type="hidden" id="item-file-url">
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button type="submit" id="submit-btn" class="bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-6 py-2 rounded-lg transition">حفظ ونشر المحتوى</button>
+          <button type="button" onclick="resetForm()" id="cancel-btn" class="hidden bg-gray-600 hover:bg-gray-500 text-white font-bold px-4 py-2 rounded-lg transition">إلغاء التعديل</button>
+        </div>
+      </form>
     </div>
 
-    <!-- قائمة محاضرات الأسبوع -->
-    <div class="outer-box p-6 space-y-3">
-      <div class="font-bold text-yellow-400 text-sm border-b border-gray-600 pb-2">قائمة محاضرات هذا الأسبوع</div>
-      <div id="lectures-list" class="space-y-2">
-        <div class="text-gray-400 text-xs text-center py-4">جاري التحميل...</div>
+    <div class="custom-card p-6 space-y-4">
+      <h2 class="text-lg font-bold text-yellow-400 border-b border-gray-700 pb-2">المحتوى الحالي في النظام</h2>
+      <div id="existing-items-list" class="space-y-3">
+        <div class="text-gray-400 text-xs py-2 text-center">جاري تحميل المحتوى...</div>
       </div>
     </div>
 
@@ -50,73 +100,187 @@
     const SUPABASE_KEY = 'sb_publishable_7h5Md1GNOmy2IDwe2_vvgQ_8641PjaP';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const arabicNumbers = {
-      1: 'الاول', 2: 'الثاني', 3: 'الثالث', 4: 'الرابع', 5: 'الخامس', 6: 'السادس',
-      7: 'السابع', 8: 'الثامن', 9: 'التاسع', 10: 'العاشر', 11: 'الحادي عشر', 12: 'الثاني عشر'
-    };
+    function toggleSectionFields() {
+      const type = document.getElementById('section-type').value;
+      const weeklyFields = document.getElementById('weekly-fields');
+      const generalFields = document.getElementById('general-fields');
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const weekNumber = parseInt(urlParams.get('week')) || 1;
-
-    async function loadWeekLectures() {
-      const weekName = arabicNumbers[weekNumber] ? `الاسبوع ${arabicNumbers[weekNumber]}` : `الاسبوع ${weekNumber}`;
-      document.getElementById('page-title').innerText = `محاضرات ${weekName}`;
-
-      const { data: lectures, error } = await supabaseClient
-        .from('weekly_content')
-        .select('*')
-        .eq('week_number', weekNumber)
-        .order('id', { ascending: true });
-
-      if (error) {
-        console.error(error);
-        return;
+      if (type === 'weekly_content') {
+        weeklyFields.classList.remove('hidden');
+        generalFields.classList.add('hidden');
+      } else {
+        weeklyFields.classList.add('hidden');
+        generalFields.classList.remove('hidden');
       }
+    }
 
-      const container = document.getElementById('lectures-list');
+    async function handleFormSubmit(event) {
+      event.preventDefault();
+      const submitBtn = document.getElementById('submit-btn');
+      submitBtn.innerText = 'جاري الحفظ...';
+      submitBtn.disabled = true;
 
-      if (!lectures || lectures.length === 0) {
-        container.innerHTML = `<div class="text-gray-400 text-xs text-center py-4">لا توجد محاضرات مضافة لهذا الأسبوع حتى الآن</div>`;
-        document.getElementById('video-container').innerHTML = `<p>لا يوجد فيديو</p>`;
-        document.getElementById('current-lecture-title').innerText = '';
-        document.getElementById('current-lecture-desc').innerText = '';
+      const editId = document.getElementById('edit-item-id').value;
+      const editTable = document.getElementById('edit-item-table').value;
+      const sectionType = document.getElementById('section-type').value;
+      const content = document.getElementById('item-content').value;
+      const video_url = document.getElementById('item-video').value;
+      let file_url = document.getElementById('item-file-url').value;
+      const fileInput = document.getElementById('item-file-upload');
+
+      try {
+        if (fileInput.files.length > 0) {
+          const file = fileInput.files[0];
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+          
+          const { error: uploadError } = await supabaseClient.storage.from('course-files').upload(fileName, file);
+          if (uploadError) throw new Error('فشل رفع الملف: ' + uploadError.message);
+
+          const { data: publicUrlData } = supabaseClient.storage.from('course-files').getPublicUrl(fileName);
+          file_url = publicUrlData.publicUrl;
+        }
+
+        if (sectionType === 'weekly_content') {
+          const selectedWeek = document.getElementById('week-select').value;
+          const payload = {
+            week_number: parseInt(selectedWeek),
+            section_type: 'weekly_content',
+            title: 'محاضرة', 
+            description: content,
+            video_url,
+            file_url: file_url || (editId ? undefined : null)
+          };
+
+          if (editId && editTable === 'weekly_content') {
+            const { error } = await supabaseClient.from('weekly_content').update(payload).eq('id', editId);
+            if (error) throw error;
+            alert('تم تحديث المحاضرة بنجاح!');
+          } else {
+            const { error } = await supabaseClient.from('weekly_content').insert([payload]);
+            if (error) throw error;
+            alert('تم حفظ ونشر المحاضرة بنجاح!');
+          }
+        } else {
+          const title = document.getElementById('item-title').value;
+          const payload = {
+            section_type: sectionType,
+            title: title.trim() !== '' ? title : null,
+            content,
+            file_url: file_url || (editId ? undefined : null)
+          };
+
+          if (editId && editTable === 'dashboard_items') {
+            const { error } = await supabaseClient.from('dashboard_items').update(payload).eq('id', editId);
+            if (error) throw error;
+            alert('تم التحديث بنجاح!');
+          } else {
+            const { error } = await supabaseClient.from('dashboard_items').insert([payload]);
+            if (error) throw error;
+            alert('تم النشر بنجاح!');
+          }
+        }
+
+        resetForm();
+        loadExistingItems();
+      } catch (err) {
+        alert('حدث خطأ: ' + err.message);
+      } finally {
+        submitBtn.innerText = 'حفظ ونشر المحتوى';
+        submitBtn.disabled = false;
+      }
+    }
+
+    async function loadExistingItems() {
+      const container = document.getElementById('existing-items-list');
+      const { data: weeklyData } = await supabaseClient.from('weekly_content').select('*').order('week_number', { ascending: true });
+      const { data: dashboardData } = await supabaseClient.from('dashboard_items').select('*');
+
+      let allItems = [];
+      if (weeklyData) weeklyData.forEach(item => allItems.push({ ...item, tableName: 'weekly_content' }));
+      if (dashboardData) dashboardData.forEach(item => allItems.push({ ...item, tableName: 'dashboard_items' }));
+
+      if (allItems.length === 0) {
+        container.innerHTML = `<div class="text-gray-400 text-xs py-2 text-center">لا توجد أي بيانات مضافة حالياً</div>`;
         return;
       }
 
       let html = '';
-      lectures.forEach((item, index) => {
+      allItems.forEach(item => {
+        let displayTitle = '';
+        let badge = '';
+
+        if (item.tableName === 'weekly_content') {
+          badge = `<span class="bg-yellow-600 text-black text-[10px] font-bold px-2 py-0.5 rounded">أسبوعي</span>`;
+          displayTitle = `محاضرة - الأسبوع ${item.week_number}`;
+        } else if (item.section_type === 'announcements') {
+          badge = `<span class="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">إعلان</span>`;
+          displayTitle = item.title || 'إعلان';
+        } else {
+          badge = `<span class="bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">واجب</span>`;
+          displayTitle = item.title || 'واجب';
+        }
+
         html += `
-          <button onclick='selectLecture(${JSON.stringify(item)}, "محاضرة رقم ${index + 1}")' class="w-full inner-box p-3 text-right text-xs font-bold text-yellow-300 hover:bg-[#555] transition flex justify-between items-center">
-            <span>محاضرة رقم ${index + 1}</span>
-            <span class="text-[10px] text-gray-400 font-normal">${item.description ? item.description.substring(0, 25) + '...' : ''}</span>
-          </button>
+          <div class="bg-[#333] p-3 rounded-lg flex justify-between items-center border border-gray-700">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                ${badge}
+                <span class="font-bold text-sm text-yellow-400">${displayTitle}</span>
+              </div>
+              <p class="text-xs text-gray-300 truncate max-w-md">${item.description || item.content || ''}</p>
+            </div>
+            <div class="flex gap-2">
+              <button onclick='editItem(${JSON.stringify(item)}, "${item.tableName}")' class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded transition">تعديل</button>
+              <button onclick='deleteItem("${item.id}", "${item.tableName}")' class="bg-red-600 hover:bg-red-500 text-white text-xs px-3 py-1.5 rounded transition">حذف</button>
+            </div>
+          </div>
         `;
       });
-
       container.innerHTML = html;
-      selectLecture(lectures[0], 'محاضرة رقم 1');
     }
 
-    function selectLecture(item, title) {
-      document.getElementById('current-lecture-title').innerText = title;
-      document.getElementById('current-lecture-desc').innerText = item.description || 'لا يوجد وصف...';
+    function editItem(item, tableName) {
+      document.getElementById('edit-item-id').value = item.id;
+      document.getElementById('edit-item-table').value = tableName;
+      document.getElementById('form-title').innerText = 'تعديل المحتوى';
+      document.getElementById('submit-btn').innerText = 'تحديث المحتوى';
+      document.getElementById('cancel-btn').classList.remove('hidden');
 
-      const videoContainer = document.getElementById('video-container');
-      if (item.video_url && item.video_url.trim() !== '') {
-        videoContainer.innerHTML = `<iframe src="${item.video_url}" class="w-full h-full" frameborder="0" allowfullscreen></iframe>`;
+      if (tableName === 'weekly_content') {
+        document.getElementById('section-type').value = 'weekly_content';
+        toggleSectionFields();
+        document.getElementById('week-select').value = item.week_number;
+        document.getElementById('item-video').value = item.video_url || '';
+        document.getElementById('item-content').value = item.description || '';
       } else {
-        videoContainer.innerHTML = `<p>لا يوجد فيديو مرفق لهذه المحاضرة</p>`;
+        document.getElementById('section-type').value = item.section_type;
+        toggleSectionFields();
+        document.getElementById('item-title').value = item.title || '';
+        document.getElementById('item-content').value = item.content || '';
       }
-
-      const fileContainer = document.getElementById('current-lecture-file');
-      if (item.file_url && item.file_url.trim() !== '') {
-        fileContainer.innerHTML = `<a href="${item.file_url}" target="_blank" class="inline-block bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded transition">تحميل المرفق 📁</a>`;
-      } else {
-        fileContainer.innerHTML = '';
-      }
+      document.getElementById('item-file-url').value = item.file_url || '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    loadWeekLectures();
+    function resetForm() {
+      document.getElementById('content-form').reset();
+      document.getElementById('edit-item-id').value = '';
+      document.getElementById('edit-item-table').value = '';
+      document.getElementById('form-title').innerText = 'إضافة محتوى جديد';
+      document.getElementById('submit-btn').innerText = 'حفظ ونشر المحتوى';
+      document.getElementById('cancel-btn').classList.add('hidden');
+      toggleSectionFields();
+    }
+
+    async function deleteItem(id, tableName) {
+      if (!confirm('هل أنت متأكد من حذف هذا العنصر؟')) return;
+      await supabaseClient.from(tableName).delete().eq('id', id);
+      loadExistingItems();
+    }
+
+    toggleSectionFields();
+    loadExistingItems();
   </script>
 </body>
 </html>
